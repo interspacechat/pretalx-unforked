@@ -1,7 +1,7 @@
 version: '2'
 services:
   pretalx:
-    image: pretalx/standalone:latest
+    image: pretalx
     container_name: pretalx
     restart: unless-stopped
     depends_on: 
@@ -9,13 +9,14 @@ services:
       - db
     ports:
       - "80:80"
+      - "443:443"
     volumes: 
       - ./conf/pretalx.cfg:/etc/pretalx/pretalx.cfg:ro
       - pretalx-data:/data
+      - ./deployment/docker/certbot/www:/var/www/certbot
     labels:
        traefik.docker.network: "pretalxdocker"
        traefik.enable: "true"
-
 
   db:
     image: mysql:5
@@ -35,6 +36,15 @@ services:
     restart: unless-stopped
     volumes: 
       - pretalx-redis:/data
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    restart: unless-stopped
+    volumes:
+      - ./deployment/docker/certbot/conf:/etc/letsencrypt
+      - ./deployment/docker/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 
 volumes:
